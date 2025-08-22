@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tic Tac Toe</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root { --gap: 12px; --size: 96px; --bg:#f7f7f7; --card:#ffffff; --accent:#111; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: #222; display: grid; place-items: center; min-height: 100vh;}
+    .wrap { width: min(420px, 92vw); }
+    h1 { text-align: center; margin: 14px 0 6px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--card); padding: 10px 12px; border-radius: 14px; box-shadow: 0 6px 22px rgba(0,0,0,.06); }
+    .status { font-weight: 700; }
+    .controls { display: flex; align-items: center; gap: 10px; }
+    button { border: 0; padding: 8px 12px; border-radius: 10px; cursor: pointer; background: #222; color: #fff; font-weight: 700; }
+    label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+    input[type="checkbox"] { width: 18px; height: 18px; }
+    .board { margin-top: 14px; display: grid; grid-template-columns: repeat(3, var(--size)); gap: var(--gap); justify-content: center; }
+    .cell {
+      width: var(--size); height: var(--size);
+      display: grid; place-items: center;
+      font-size: 2.4rem; font-weight: 900; letter-spacing: 2px;
+      background: var(--card); border-radius: 18px; cursor: pointer;
+      box-shadow: 0 6px 22px rgba(0,0,0,.06);
+      user-select: none; transition: transform .05s ease;
+    }
+    .cell:active { transform: scale(.98); }
+    .note { text-align: center; opacity: .7; margin-top: 10px; font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Tic-Tac-Toe</h1>
+
+    <div class="topbar">
+      <div class="status" id="status">X’s turn</div>
+      <div class="controls">
+        <label title="Computer plays O">
+          <input type="checkbox" id="vsBot" />
+          VS Computer
+        </label>
+        <button id="reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="board" id="board"></div>
+    <div class="note">Tip: Turn on “VS Computer” to play against a simple bot.</div>
+  </div>
+
+  <script>
+    const boardEl = document.getElementById("board");
+    const statusEl = document.getElementById("status");
+    const resetBtn = document.getElementById("reset");
+    const vsBotEl = document.getElementById("vsBot");
+
+    let cells = Array(9).fill("");
+    let turn = "X";
+    let gameOver = false;
+
+    const wins = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+
+    function render() {
+      boardEl.innerHTML = "";
+      cells.forEach((val, i) => {
+        const d = document.createElement("div");
+        d.className = "cell";
+        d.textContent = val;
+        d.addEventListener("click", () => handleMove(i));
+        boardEl.appendChild(d);
+      });
+      updateStatus();
+    }
+
+    function updateStatus() {
+      const w = getWinner();
+      if (w) {
+        statusEl.textContent = `${w} wins!`;
+        gameOver = true;
+      } else if (cells.every(c => c)) {
+        statusEl.textContent = "Draw!";
+        gameOver = true;
+      } else {
+        statusEl.textContent = `${turn}’s turn`;
+      }
+    }
+
+    function handleMove(i) {
+      if (gameOver || cells[i]) return;
+      cells[i] = turn;
+      turn = turn === "X" ? "O" : "X";
+      render();
+
+      // Bot move if enabled, game not over, and it's O's turn
+      if (!gameOver && vsBotEl.checked && turn === "O") {
+        setTimeout(botMove, 250);
+      }
+    }
+
+    function getWinner() {
+      for (const [a,b,c] of wins) {
+        if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) return cells[a];
+      }
+      return null;
+    }
+
+    function emptyIndices() {
+      return cells.map((v, i) => v ? null : i).filter(i => i !== null);
+    }
+
+    // Simple bot: try to win, block, else random
+    function botMove() {
+      if (gameOver) return;
+
+      // 1) try to win
+      let move = findBestMove("O");
+      // 2) block X
+      if (move === null) move = findBestMove("X");
+      // 3) take center/corners/random
+      if (move === null) {
+        const prio = [4,0,2,6,8,1,3,5,7];
+        move = prio.find(i => cells[i] === "") ?? emptyIndices()[0];
+      }
+
+      cells[move] = "O";
+      turn = "X";
+      render();
+    }
+
+    function findBestMove(player) {
+      for (const [a,b,c] of wins) {
+        const line = [cells[a], cells[b], cells[c]];
+        const countP = line.filter(v => v === player).length;
+        const countE = line.filter(v => v === "").length;
+        if (countP === 2 && countE === 1) {
+          const idx = [a,b,c][line.indexOf("")];
+          return idx;
+        }
+      }
+      return null;
+    }
+
+    resetBtn.addEventListener("click", () => {
+      cells = Array(9).fill("");
+      turn = "X";
+      gameOver = false;
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
